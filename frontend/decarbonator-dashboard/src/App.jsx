@@ -2,6 +2,7 @@ import { useState } from "react";
 import Sidebar from "./components/sidebar";
 import Dashboard from "./pages/dashboard";
 import PlantStats from "./pages/PlantStats";
+import MapPage from "./pages/map";
 // ถ้ายังไม่มีสองหน้านี้จริง ๆ ให้คอมเมนต์ไว้ก่อนก็ได้
 // import Prediction from "./pages/Prediction";
 // import About from "./pages/About";
@@ -48,12 +49,7 @@ function App() {
         );
 
       case "map":
-        return (
-          <div>
-            <h1>Map Page</h1>
-            <p>คุณกำลังอยู่ที่หน้า Map</p>
-          </div>
-        );
+        return <MapPage />;
 
       case "about":
         return (
