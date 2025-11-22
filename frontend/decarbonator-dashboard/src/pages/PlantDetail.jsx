@@ -10,6 +10,8 @@ function PlantDetail({ plant, onBack }) {
   const [selectedMetric, setSelectedMetric] = useState("carbon");
   const [timeRange, setTimeRange] = useState("all");
   const [dataInterval, setDataInterval] = useState("5min");
+  const [selectedDate, setSelectedDate] = useState("all");
+  const [availableDates, setAvailableDates] = useState([]);
 
   const metrics = [
     { value: "carbon", label: "Carbon (ppm)", color: "#22c55e" },
@@ -60,17 +62,33 @@ function PlantDetail({ plant, onBack }) {
         const data = await response.json();
         
         // Transform API data to our format
-        const transformedData = data.map(item => ({
-          timestamp: item.timestamp,
-          carbon: item["COM_1 Wd_0"] || 0,
-          temperature: (item["COM_1 Wd_1"] || 0) / 100,
-          humidity: (item["COM_1 Wd_2"] || 0) / 100,
-          lightIntensity: item["COM_1 Wd_4"] || 0,
-          lux: item["COM_1 Wd_6"] || 0,
-          DI_0: item.DI_0 || 0,
-          DI_1: item.DI_1 || 0,
-          DI_2: item.DI_2 || 0,
-        }));
+        const transformedData = data.map(item => {
+          const timestamp = item.timestamp || item.TIM;
+          const dateObj = new Date(timestamp);
+          
+          return {
+            timestamp: timestamp,
+            date: dateObj.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric' 
+            }),
+            carbon: item["COM_1 Wd_0"] || 0,
+            temperature: (item["COM_1 Wd_1"] || 0) / 100,
+            humidity: (item["COM_1 Wd_2"] || 0) / 100,
+            lightIntensity: item["COM_1 Wd_4"] || 0,
+            lux: item["COM_1 Wd_6"] || 0,
+            DI_0: item.DI_0 || 0,
+            DI_1: item.DI_1 || 0,
+            DI_2: item.DI_2 || 0,
+          };
+        });
+        
+        // Extract unique dates and sort them
+        const dates = [...new Set(transformedData.map(item => item.date))].sort((a, b) => {
+          return new Date(a) - new Date(b);
+        });
+        setAvailableDates(dates);
         
         setSensorData(transformedData);
         setLoading(false);
@@ -97,32 +115,65 @@ function PlantDetail({ plant, onBack }) {
     });
   };
 
-  // Filter data by time range
-  const filterDataByTime = (data) => {
-    if (timeRange === "all") return data;
-    
-    const now = new Date();
-    const filtered = data.filter(item => {
-      const itemDate = new Date(item.timestamp);
-      const hoursDiff = (now - itemDate) / (1000 * 60 * 60);
-      
-      if (timeRange === "1h") return hoursDiff <= 1;
-      if (timeRange === "6h") return hoursDiff <= 6;
-      if (timeRange === "24h") return hoursDiff <= 24;
-      return true;
+  const formatDateTime = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
     });
+  };
+
+  // Get color for date
+  const dateColors = [
+    "#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", 
+    "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#84cc16"
+  ];
+  
+  const getColorForDate = (date) => {
+    const index = availableDates.indexOf(date);
+    return dateColors[index % dateColors.length];
+  };
+
+  // Filter data by time range and date
+  const filterData = (data) => {
+    let filtered = data;
+    
+    // Filter by selected date
+    if (selectedDate !== "all") {
+      filtered = filtered.filter(item => item.date === selectedDate);
+    }
+    
+    // Filter by time range
+    if (timeRange !== "all") {
+      const now = new Date();
+      filtered = filtered.filter(item => {
+        const itemDate = new Date(item.timestamp);
+        const hoursDiff = (now - itemDate) / (1000 * 60 * 60);
+        
+        if (timeRange === "1h") return hoursDiff <= 1;
+        if (timeRange === "6h") return hoursDiff <= 6;
+        if (timeRange === "24h") return hoursDiff <= 24;
+        return true;
+      });
+    }
     
     return filtered.length > 0 ? filtered : data;
   };
 
   // Format data for chart
   const currentMetric = metrics.find(m => m.value === selectedMetric);
-  const filteredData = filterDataByTime(sensorData);
+  const filteredData = filterData(sensorData);
   
   const chartData = filteredData.map(item => ({
     time: formatTime(item.timestamp),
+    dateTime: formatDateTime(item.timestamp),
     value: item[selectedMetric],
-    fullTimestamp: item.timestamp
+    date: item.date,
+    fullTimestamp: item.timestamp,
+    color: getColorForDate(item.date)
   }));
 
   // Get latest value
@@ -236,7 +287,26 @@ function PlantDetail({ plant, onBack }) {
             <h2 className="text-2xl font-bold">Sensor Data Over Time</h2>
             
             {/* Controls */}
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
+              {/* Date Selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date
+                </label>
+                <select
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                >
+                  <option value="all">All Dates</option>
+                  {availableDates.map(date => (
+                    <option key={date} value={date}>
+                      {date}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Data Interval Selector */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -249,7 +319,7 @@ function PlantDetail({ plant, onBack }) {
                 >
                   {intervalOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>
-                      {opt.label} - {opt.description}
+                      {opt.label}
                     </option>
                   ))}
                 </select>
@@ -282,6 +352,7 @@ function PlantDetail({ plant, onBack }) {
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={selectedDate !== "all"}
                 >
                   <option value="1h">Last 1 Hour</option>
                   <option value="6h">Last 6 Hours</option>
@@ -294,9 +365,31 @@ function PlantDetail({ plant, onBack }) {
 
           {/* Info banner */}
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-            <p className="text-sm text-yellow-700">
-              <span className="font-semibold">Showing:</span> {chartData.length} data points at {intervalOptions.find(o => o.value === dataInterval)?.label} intervals
-            </p>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-yellow-700">
+                <span className="font-semibold">Showing:</span> {chartData.length} data points at {intervalOptions.find(o => o.value === dataInterval)?.label} intervals
+                {selectedDate !== "all" && <span className="ml-2">| <span className="font-semibold">Date:</span> {selectedDate}</span>}
+              </p>
+              
+              {/* Date color legend */}
+              {selectedDate === "all" && availableDates.length > 1 && (
+                <div className="flex gap-2 items-center">
+                  <span className="text-xs text-gray-600 mr-2">Dates:</span>
+                  {availableDates.slice(0, 5).map(date => (
+                    <div key={date} className="flex items-center gap-1">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: getColorForDate(date) }}
+                      ></div>
+                      <span className="text-xs text-gray-600">{date}</span>
+                    </div>
+                  ))}
+                  {availableDates.length > 5 && (
+                    <span className="text-xs text-gray-600">+{availableDates.length - 5} more</span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="mb-6">
@@ -304,8 +397,11 @@ function PlantDetail({ plant, onBack }) {
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
-                  dataKey="time" 
+                  dataKey={selectedDate === "all" ? "dateTime" : "time"}
                   label={{ value: 'Time', position: 'insideBottom', offset: -5 }}
+                  angle={selectedDate === "all" ? -15 : 0}
+                  textAnchor={selectedDate === "all" ? "end" : "middle"}
+                  height={selectedDate === "all" ? 80 : 60}
                 />
                 <YAxis 
                   label={{ value: currentMetric.label, angle: -90, position: 'insideLeft' }}
@@ -316,6 +412,9 @@ function PlantDetail({ plant, onBack }) {
                     if (active && payload && payload.length) {
                       return (
                         <div className="bg-white p-3 border border-gray-300 rounded shadow">
+                          <p className="text-sm font-semibold" style={{ color: payload[0].payload.color }}>
+                            {payload[0].payload.date}
+                          </p>
                           <p className="text-sm">{payload[0].payload.fullTimestamp}</p>
                           <p className="text-sm font-semibold" style={{ color: currentMetric.color }}>
                             {currentMetric.label}: {payload[0].value.toFixed(2)}
@@ -331,9 +430,20 @@ function PlantDetail({ plant, onBack }) {
                   type="monotone" 
                   dataKey="value" 
                   name={currentMetric.label}
-                  stroke={currentMetric.color}
+                  stroke={selectedDate === "all" ? "#6b7280" : currentMetric.color}
                   strokeWidth={2}
-                  dot={dataInterval === "raw" || dataInterval === "1min" ? { r: 2 } : { r: 4 }}
+                  dot={selectedDate === "all" ? (props) => {
+                    const { cx, cy, payload } = props;
+                    return (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={3}
+                        fill={payload.color}
+                        stroke={payload.color}
+                      />
+                    );
+                  } : { r: 4, fill: currentMetric.color }}
                   activeDot={{ r: 6 }}
                 />
               </LineChart>
