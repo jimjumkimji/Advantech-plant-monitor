@@ -2,7 +2,8 @@
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi import FastAPI
+from fastapi import FastAPI,HTTPException
+from backend.mongo.main import mongodb
 
 from backend.api.router import api_router
 
@@ -25,6 +26,22 @@ async def lifespan(app: FastAPI):
     print("👋 Shutting down...")
 
 app = FastAPI(title="Decarbonator3000")
+
+@app.on_event("startup")
+async def startup_event():
+    await mongodb.connect_to_mongo()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await mongodb.close_mongo_connection()
+
+def convert_objectid(doc):
+    if doc and '_id' in doc:
+        doc['_id'] = str(doc['_id'])
+    return doc
+
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"],  # React dev server
@@ -39,3 +56,19 @@ app.include_router(api_router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/db-info")
+async def get_database_info():
+    try:
+        database = await mongodb.get_database()
+        collections = await database.list_collection_names()
+        return {
+            "database_name": "aiot",
+            "collections": collections,
+            "collections_count": len(collections)
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error getting database info: {str(e)}"
+        )
