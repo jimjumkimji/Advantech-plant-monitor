@@ -58,43 +58,55 @@ export default function MapPage() {
   if (error) return <div>เกิดข้อผิดพลาด: {error}</div>;
 
   return (
-    <div style={{ height: "100vh", width: "100%" }}>
-      <MapContainer center={center} zoom={15} style={{ height: "100%", width: "100%" }}>
-        <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+    <div style={{ height: "100vh", width: "100%", display: "flex", flexDirection: "column" }}>
+      
+      {/* ---------- หัวข้อด้านบน ---------- */}
+      <div style={{ padding: "16px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "bold", margin: 0 }}>Plant Map</h1>
+        <p style={{ fontSize: "14px", color: "#64748b", marginTop: "4px" }}>
+          {plants.length} Plants Available
+        </p>
+      </div>
 
-        {plants.map((plant) => {
-          const lat = parseFloat(String(plant.Latitude).trim());
-          const lng = parseFloat(String(plant.Longtitude).trim());
-          if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+      {/* ---------- แผนที่เดิม ---------- */}
+      <div style={{ flex: 1 }}>
+        <MapContainer center={center} zoom={15} style={{ height: "100%", width: "100%" }}>
+          <TileLayer
+            attribution="&copy; OpenStreetMap contributors"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
 
-          const isConnected = Boolean(plant.Connected);
-          const icon = isConnected ? connectedIcon : defaultIcon;
+          {plants.map((plant) => {
+            const lat = parseFloat(String(plant.Latitude).trim());
+            const lng = parseFloat(String(plant.Longtitude).trim());
+            if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
 
-          return (
-            <Marker key={plant.id || plant._id} position={[lat, lng]} icon={icon}>
-              <Popup>
-                <div>
-                  <strong>{plant.Name}</strong>
-                  <br />
-                  ชื่อไทย: {plant.Species}
-                  <br />
-                  ชื่อวิทยาศาสตร์: {plant.ScientificName || "-"}
-                  <br />
-                  วงศ์: {plant.Family || "-"}
-                  <br />
-                  สถานะ: {isConnected ? "Connected" : "Disconnected"}
-                  <br />
-                  <br />
-                  <span>{plant.Description || "ไม่มีคำอธิบาย"}</span>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
+            const isConnected = Boolean(plant.Connected);
+            const icon = isConnected ? connectedIcon : defaultIcon;
+
+            return (
+              <Marker key={plant.id || plant._id} position={[lat, lng]} icon={icon}>
+                <Popup>
+                  <div>
+                    <strong>{plant.Name}</strong>
+                    <br />
+                    ชื่อไทย: {plant.Species}
+                    <br />
+                    ชื่อวิทยาศาสตร์: {plant.ScientificName || "-"}
+                    <br />
+                    วงศ์: {plant.Family || "-"}
+                    <br />
+                    สถานะ: {isConnected ? "Connected" : "Disconnected"}
+                    <br />
+                    <br />
+                    <span>{plant.Description || "ไม่มีคำอธิบาย"}</span>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+        </MapContainer>
+      </div>
     </div>
   );
 }
