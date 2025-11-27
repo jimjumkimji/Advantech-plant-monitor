@@ -86,6 +86,8 @@ export default function MapPage() {
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Predictions state keyed by sensor name
+  const [predictions, setPredictions] = useState({});
 
   // displayMode: "plants" | "heatmap" | "sensors"
   const [displayMode, setDisplayMode] = useState("plants");
@@ -108,6 +110,13 @@ export default function MapPage() {
     };
 
     fetchPlants();
+  }, []);
+
+  // Initial predictions fetch and schedule refresh every 5 minutes
+  useEffect(() => {
+    fetchAllPredictions();
+    const predInterval = setInterval(fetchAllPredictions, 5 * 60 * 1000);
+    return () => clearInterval(predInterval);
   }, []);
 
   if (loading) return <div>Loading plants...</div>;
@@ -170,6 +179,56 @@ const sensors = [
     lightIntensity: 860,
   },
 ];
+
+  // -------------------- CO2 Prediction Helpers --------------------
+  const parsePredictResponse = (data) => {
+    if (!data) return null;
+    if (typeof data === "number") return { "5min": data, "1hour": data };
+    if (data["5min"] || data["1hour"]) {
+      return {
+        "5min": (typeof data["5min"] === "object" ? data["5min"].value ?? data["5min"].pred ?? null : data["5min"]),
+        "1hour": (typeof data["1hour"] === "object" ? data["1hour"].value ?? data["1hour"].pred ?? null : data["1hour"]),
+      };
+    }
+    if (data.predictions) return { "5min": data.predictions["5min"], "1hour": data.predictions["1hour"] };
+    const numbers = Object.values(data).flatMap((v) => (typeof v === "number" ? [v] : []));
+    if (numbers.length === 1) return { "5min": numbers[0], "1hour": numbers[0] };
+    if (numbers.length >= 2) return { "5min": numbers[0], "1hour": numbers[1] };
+    return null;
+  };
+
+  const fetchPredictionsForSensor = async (sensor) => {
+    try {
+      const url = `http://127.0.0.1:8000/co2/predict?co2=${encodeURIComponent(sensor.co2 ?? "")}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = await res.json();
+      return parsePredictResponse(data);
+    } catch (err) {
+      console.warn("Prediction fetch failed for", sensor.name, err);
+      return null;
+    }
+  };
+
+  const fetchAllPredictions = async () => {
+    try {
+      const results = await Promise.all(
+        sensors.map(async (s) => {
+          const pred = await fetchPredictionsForSensor(s);
+          if (!pred) {
+            const base = Number(s.co2) || 500;
+            return { name: s.name, pred: { "5min": Math.round(base + 5), "1hour": Math.round(base + 30) } };
+          }
+          return { name: s.name, pred };
+        })
+      );
+      const mapObj = {};
+      results.forEach((r) => (mapObj[r.name] = r.pred));
+      setPredictions(mapObj);
+    } catch (e) {
+      console.error("Failed to fetch predictions:", e);
+    }
+  };
 
 
   const showPlants = displayMode === "plants";
@@ -355,13 +414,41 @@ const sensors = [
                 key={`sensor-${idx}`}
                 position={[s.lat, s.lng]}
                 icon={sensorIcon}
+                eventHandlers={{
+                  mouseover: (e) => e.target.openPopup(),
+                  mouseout: (e) => e.target.closePopup(),
+                }}
               >
                 <Popup>
                   <div>
                     <strong>{s.name}</strong>
                     <br />
                     <br />
-                    <span>{s.description}</span>
+                    <div style={{ fontSize: 13 }}>
+                      <div>
+                        CO2 (latest): <strong>{s.co2 ?? "-"} ppm</strong>
+                      </div>
+                      <div>
+                        Temp: <strong>{s.temperature ?? "-"} °C</strong>
+                      </div>
+                      <div>
+                        Humidity: <strong>{s.humidity ?? "-"} %</strong>
+                      </div>
+                      <div style={{ height: 6 }} />
+                      <div style={{ fontSize: 12, color: "#065f46" }}>
+                        <strong>Predictions</strong>
+                      </div>
+                      <div>
+                        In 5 min: <strong>{predictions[s.name]?.["5min"] ?? "—"} ppm</strong>
+                      </div>
+                      <div>
+                        In 1 hr: <strong>{predictions[s.name]?.["1hour"] ?? "—"} ppm</strong>
+                      </div>
+                      <div style={{ height: 6 }} />
+                      <div style={{ fontSize: 11, color: "#6b7280" }}>
+                        Source: {s.name === "Sensor set A" ? "real sensor" : "mock"}
+                      </div>
+                    </div>
                   </div>
                 </Popup>
               </Marker>
