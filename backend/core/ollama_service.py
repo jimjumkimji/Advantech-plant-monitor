@@ -11,8 +11,8 @@ from backend.dropbox.service import (
     LEAF_COL,
     GROUND_COL,
 )
-
-OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
+# OLLAMA_HOST=127.0.0.1:8001
+OLLAMA_URL = "http://127.0.0.1:8001/api/chat"
 MODEL_NAME = "llama3"
 
 
