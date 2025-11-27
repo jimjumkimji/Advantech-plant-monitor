@@ -66,7 +66,7 @@ function HeatmapLayer({ points }) {
     const arr = points.map((p) => [p.lat, p.lng, p.intensity]);
 
     const heatLayer = L.heatLayer(arr, {
-      radius: 50,
+      radius: 25,
       blur: 15,
       maxZoom: 18,
     });
@@ -114,6 +114,7 @@ export default function MapPage() {
   if (error) return <div>Error: {error}</div>;
 
   // ---- Mock Heatmap Points (each point has its own description) ----
+
 // ---- Heatmap Points ----
 const heatPoints = [
   {
@@ -169,6 +170,7 @@ const sensors = [
     lightIntensity: 860,
   },
 ];
+
 
   const showPlants = displayMode === "plants";
   const showHeatmap = displayMode === "heatmap";
@@ -346,7 +348,7 @@ const sensors = [
             </>
           )}
 
-          {/* Sensors (mock data) – popup styled like the screenshot */}
+          {/* Sensors (mock data) */}
           {showSensors &&
             sensors.map((s, idx) => (
               <Marker
@@ -355,20 +357,11 @@ const sensors = [
                 icon={sensorIcon}
               >
                 <Popup>
-                  <div style={{ fontSize: "14px", color: "#111827", lineHeight: 1.5 }}>
-                    <strong style={{ fontSize: "15px" }}>{s.name}</strong>
-                    <hr style={{ margin: "8px 0 8px" }} />
-
-                    <strong>Latest Sensor Readings:</strong>
-                    <hr style={{ margin: "4px 0 8px" }} />
-
-                    <div>
-                      <div><strong>Carbon:</strong> {s.carbon} ppm</div>
-                      <div><strong>Estimated Carbon:</strong> {s.estimatedPPM} ppm</div>
-                      <div><strong>Temperature:</strong> {s.temperature}°C</div>
-                      <div><strong>Humidity:</strong> {s.humidity}%</div>
-                      <div><strong>Light Intensity:</strong> {s.lightIntensity} lux</div>
-                    </div>
+                  <div>
+                    <strong>{s.name}</strong>
+                    <br />
+                    <br />
+                    <span>{s.description}</span>
                   </div>
                 </Popup>
               </Marker>
