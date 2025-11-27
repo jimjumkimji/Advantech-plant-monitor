@@ -112,13 +112,6 @@ export default function MapPage() {
     fetchPlants();
   }, []);
 
-  // Initial predictions fetch and schedule refresh every 5 minutes
-  useEffect(() => {
-    fetchAllPredictions();
-    const predInterval = setInterval(fetchAllPredictions, 5 * 60 * 1000);
-    return () => clearInterval(predInterval);
-  }, []);
-
   if (loading) return <div>Loading plants...</div>;
   if (error) return <div>Error: {error}</div>;
 
@@ -414,41 +407,13 @@ const sensors = [
                 key={`sensor-${idx}`}
                 position={[s.lat, s.lng]}
                 icon={sensorIcon}
-                eventHandlers={{
-                  mouseover: (e) => e.target.openPopup(),
-                  mouseout: (e) => e.target.closePopup(),
-                }}
               >
                 <Popup>
                   <div>
                     <strong>{s.name}</strong>
                     <br />
                     <br />
-                    <div style={{ fontSize: 13 }}>
-                      <div>
-                        CO2 (latest): <strong>{s.co2 ?? "-"} ppm</strong>
-                      </div>
-                      <div>
-                        Temp: <strong>{s.temperature ?? "-"} °C</strong>
-                      </div>
-                      <div>
-                        Humidity: <strong>{s.humidity ?? "-"} %</strong>
-                      </div>
-                      <div style={{ height: 6 }} />
-                      <div style={{ fontSize: 12, color: "#065f46" }}>
-                        <strong>Predictions</strong>
-                      </div>
-                      <div>
-                        In 5 min: <strong>{predictions[s.name]?.["5min"] ?? "—"} ppm</strong>
-                      </div>
-                      <div>
-                        In 1 hr: <strong>{predictions[s.name]?.["1hour"] ?? "—"} ppm</strong>
-                      </div>
-                      <div style={{ height: 6 }} />
-                      <div style={{ fontSize: 11, color: "#6b7280" }}>
-                        Source: {s.name === "Sensor set A" ? "real sensor" : "mock"}
-                      </div>
-                    </div>
+                    <span>{s.description}</span>
                   </div>
                 </Popup>
               </Marker>
