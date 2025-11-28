@@ -45,6 +45,7 @@ async def co2_all_raw(
         interval
     )
     return data
+
 @router.get("/co2/predict")
 async def co2_predict():
     # 1. Use asyncio.to_thread() to run the synchronous function in a thread pool.
