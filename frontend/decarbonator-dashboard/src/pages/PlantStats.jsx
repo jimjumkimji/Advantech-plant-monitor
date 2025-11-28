@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Dashboard from "./dashboard";
 
 function PlantStats({ onNavigateToPlant }) {
   // plant info
@@ -13,6 +14,8 @@ function PlantStats({ onNavigateToPlant }) {
       // image: "/images/mulberry.jpg",
       image: "/public/images/mulberry.jpg",
     },
+
+    
     // {
     //   id: 2,
     //   name: "Plant 2",
@@ -25,7 +28,12 @@ function PlantStats({ onNavigateToPlant }) {
   ]);
 
   return (
-    <div className="p-8">
+    <div className="text-2xl font-bold text-gray-900 mb-1">
+      {/* Include main dashboard above plant list */}
+      <Dashboard />
+      
+
+      {/* Plants list below dashboard */}
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">
