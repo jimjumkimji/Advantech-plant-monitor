@@ -122,24 +122,6 @@ function Dashboard({ sensorData = [], plants = [] }) {
     });
   };
 
-  const handleDone = () => {
-    if (!isComplete) return;
-    setAppliedRange({
-      startDate,
-      startTime,
-      endDate,
-      endTime,
-    });
-  };
-
-  const handleCancel = () => {
-    setStartDate("");
-    setStartTime("");
-    setEndDate("");
-    setEndTime("");
-    setAppliedRange(null);
-  };
-
   // -----------------------------
   // Action detection from sensorData
   // sensorData เป็น data ก้อนเดียวกับ graph ใน PlantDetail
@@ -148,242 +130,39 @@ function Dashboard({ sensorData = [], plants = [] }) {
   const LUX_SPIKE_ON = 200; // lux delta up = light on
   const LUX_SPIKE_OFF = 200; // lux delta down = light off
 
-  const actionLogs = (() => {
-    if (!sensorData || sensorData.length === 0) return [];
-
-    // group by plant_id 
-    const byPlant = new Map();
-
-    sensorData.forEach((item) => {
-      const plantId = item.plant_id ?? "default";
-      if (!byPlant.has(plantId)) {
-        byPlant.set(plantId, []);
-      }
-      byPlant.get(plantId).push(item);
-    });
-
-    const logs = [];
-
-    byPlant.forEach((entries, plantId) => {
-      // sort by time (oldest -> newest)
-      const sorted = [...entries].sort(
-        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-      );
-
-      // หา plant name จาก data 
-      const fromEntriesName = sorted[0]?.plant_name;
-      const fromPlants = plants.find(
-        (p) => String(p.id) === String(plantId)
-      );
-      const plantName =
-        fromEntriesName ||
-        fromPlants?.name ||
-        `Plant ${plantId}`;
-
-      for (let i = 1; i < sorted.length; i++) {
-        const prev = sorted[i - 1];
-        const cur = sorted[i];
-
-        const prevHum = Number(prev.humidity);
-        const curHum = Number(cur.humidity);
-        const prevLux = Number(prev.lux);
-        const curLux = Number(cur.lux);
-
-        const ts = new Date(cur.timestamp);
-
-        // Watering: humidity spike up
-        if (
-          !isNaN(prevHum) &&
-          !isNaN(curHum) &&
-          curHum - prevHum >= HUMIDITY_SPIKE
-        ) {
-          logs.push({
-            timestamp: ts,
-            plantName,
-            type: "Water",
-          });
-        }
-
-        // Light ON: lux spike up
-        if (
-          !isNaN(prevLux) &&
-          !isNaN(curLux) &&
-          curLux - prevLux >= LUX_SPIKE_ON
-        ) {
-          logs.push({
-            timestamp: ts,
-            plantName,
-            type: "Light On",
-          });
-        }
-
-        // Light OFF: lux spike down
-        if (
-          !isNaN(prevLux) &&
-          !isNaN(curLux) &&
-          prevLux - curLux >= LUX_SPIKE_OFF
-        ) {
-          logs.push({
-            timestamp: ts,
-            plantName,
-            type: "Light Off",
-          });
-        }
-      }
-    });
-
-    return logs;
-  })();
-
-
-  // Sorting for action logs
-  const sortedLogs = [...actionLogs].sort((a, b) => {
-    let cmp = 0;
-
-    if (sortField === "timestamp") {
-      cmp = a.timestamp.getTime() - b.timestamp.getTime();
-    } else if (sortField === "plantName") {
-      cmp = a.plantName.localeCompare(b.plantName);
-    } else if (sortField === "type") {
-      cmp = a.type.localeCompare(b.type);
-    }
-
-    return sortDirection === "asc" ? cmp : -cmp;
-  });
-
-  const handleSort = (field) => {
-    if (sortField === field) {
-      // toggle direction
-      setSortDirection((prev) =>
-        prev === "asc" ? "desc" : "asc"
-      );
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-  };
-
   const renderSortIcon = (field) => {
     if (sortField !== field) return "↕";
     return sortDirection === "asc" ? "↑" : "↓";
   };
 
   return (
-    <div className="p-8 space-y-8">
-      {/* หัวข้อใหญ่ + การ์ดสรุป */}
+    <div className="p-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-1">
-        Decarbonator Overview
-      </h1>
+          Decarbonator Overview
+        </h1>
+      {/* Header + KPI row (responsive): title left, KPIs right */}
+      <div className="flex flex-col  md:justify-between gap-6 mb-6">
+      
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-2xl shadow-md px-6 py-4 flex flex-col justify-between">
-          <p className="text-xs text-gray-500 mb-2">
-            Total Plant(s):
-          </p>
-          {/* <p className="text-2xl font-semibold">{totalPlants}</p> */}
-          <p className="text-2xl font-semibold">1 </p>
-        </div>
+        {/* KPI Cards */}
+        <div className="w-full md:w-2/3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-2xl shadow-md px-6 py-4 flex flex-col justify-between">
+              <p className="text-xs text-gray-500 mb-2">Total Plant(s):</p>
+              {/* <p className="text-2xl font-semibold">{totalPlants}</p> */}
+              <p className="text-2xl font-semibold">1</p>
+            </div>
 
-        <div className="bg-white rounded-2xl shadow-md px-6 py-4 flex flex-col justify-between">
-          <p className="text-xs text-gray-500 mb-2">
-            Total CO2 Absorbed
-          </p>
-          <p className="text-2xl font-semibold">
-            {totalCo2} ppm
-          </p>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-md px-6 py-4 flex flex-col justify-between">
-          <p className="text-xs text-gray-500 mb-2">
-            Bangkok Avg Temp (Today)
-          </p>
-          <p className="text-2xl font-semibold">
-            {bangkokAvgTemp !== null
-              ? `${bangkokAvgTemp.toFixed(1)} °C`
-              : "-"}
-          </p>
-        </div>
-      </div>
-
-      <hr className="border-t border-gray-300 my-4" />
-
-      {/* Action Logs */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Action Logs</h1>
-        <p className="text-gray-500"> Detected watering and light on/off from sensor spikes</p>
-      </div>
-
-      <section className="bg-white rounded-2xl shadow-md px-6 py-4">
-        {sortedLogs.length === 0 ? (
-          <p className="text-sm text-gray-500">No detected events yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead>
-                <tr className="border-b text-xs text-gray-500 uppercase">
-                  <th
-                    className="py-2 pr-4 cursor-pointer select-none"
-                    onClick={() => handleSort("timestamp")}
-                  >
-                    Date / Time{" "}
-                    <span className="ml-1">{renderSortIcon("timestamp")}</span>
-                  </th>
-
-                  <th
-                    className="py-2 pr-4 cursor-pointer select-none"
-                    onClick={() => handleSort("plantName")}
-                  >
-                    Plant{" "}
-                    <span className="ml-1">{renderSortIcon("plantName")}</span>
-                  </th>
-
-                  <th
-                    className="py-2 pr-4 cursor-pointer select-none"
-                    onClick={() => handleSort("type")}
-                  >
-                    Type{" "}
-                    <span className="ml-1">{renderSortIcon("type")}</span>
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {sortedLogs.map((log, idx) => (
-                  <tr key={idx} className="border-b last:border-b-0">
-                    <td className="py-2 pr-4">{formatDateTimeDisplay(log.timestamp)}</td>
-                    <td className="py-2 pr-4">{log.plantName}</td>
-                    <td className="py-2 pr-4">{log.type}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="bg-white rounded-2xl shadow-md px-6 py-4 flex flex-col justify-between">
+              <p className="text-xs text-gray-500 mb-2">Bangkok Avg Temp (Today)</p>
+              <p className="text-2xl font-semibold">
+                {bangkokAvgTemp !== null ? `${bangkokAvgTemp.toFixed(1)} °C` : "-"}
+              </p>
+            </div>
           </div>
-        )}
-      </section>
-
-      {/* Graph */}
-      {appliedRange && (
-        <section className="space-y-4">
-          <h2 className="text-m font-medium mb-2">
-            <h2 className="text-m font-medium mb-2">
-              Comparing data from{" "}
-              {formatDateTime(
-                appliedRange.startDate,
-                appliedRange.startTime
-              )}{" "}
-              until{" "}
-              {formatDateTime(
-                appliedRange.endDate,
-                appliedRange.endTime
-              )}
-            </h2>
-          </h2>
-        </section>
-      )}
+        </div>
+      </div>
     </div>
-    
   );
 }
-
 export default Dashboard;

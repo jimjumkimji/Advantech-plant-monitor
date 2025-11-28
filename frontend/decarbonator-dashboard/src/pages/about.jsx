@@ -13,7 +13,7 @@ improvement and plant health management.
       department: "Department of Computer Engineering",
       faculty: "Faculty of Engineering, Kasetsart University",
       // email: "professor1@ku.ac.th",
-      img: "/prof1.jpg", // put image in /public/
+      img: "/images/6.jpg", // put image in /public/
     },
     {
       name: "Assoc. Prof. Dr. WANNARAT PHONPHOEM",
@@ -21,7 +21,7 @@ improvement and plant health management.
       department: "Department of Biochemistry",
       faculty: "Faculty of Science, Kasetsart University",
       email: "professor2@ku.ac.th",
-      img: "/prof2.jpg",
+      img: "/images/7.jpg",
     },
   ];
 
@@ -29,27 +29,27 @@ improvement and plant health management.
     {
       name: "NARAN WONGVUTTHISAROJ",
       // role: "Frontend / UI Designer",
-      img: "/member1.jpg",
+      img: "/images/1.jpg",
     },
     {
       name: "NITISARATH PHUTTIPHAPHONG",
       // role: "Backend Developer",
-      img: "/member2.jpg",
+      img: "/images/2.jpg",
     },
     {
       name: "PACHARAMON PUTRASRENI",
       // role: "",
-      img: "/member3.jpg",
+      img: "/images/3.jpg",
     },
     {
       name: "THAMMAPAT RATTANATAIPOP",
       // role: "Data Analyst",
-      img: "/member4.jpg",
+      img: "/images/4.jpg",
     },
     {
       name: "KONGPHOP PHAIROH",
       // role: "Research / Documentation",
-      img: "/member5.jpg",
+      img: "/images/5.jpg",
     },
   ];
 

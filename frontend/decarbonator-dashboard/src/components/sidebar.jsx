@@ -1,6 +1,6 @@
 function Sidebar({ currentPage, setPage }) {
   const menuItems = [
-    { id: "dashboard", label: "DASHBOARD" },
+    // { id: "dashboard", label: "DASHBOARD" },
     { id: "plant-stats", label: "PLANT STATS" },
     { id: "map", label: "MAP" },
     { id: "about", label: "ABOUT US" }
